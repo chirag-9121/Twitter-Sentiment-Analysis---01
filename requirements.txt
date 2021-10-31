@@ -1,6 +1,4 @@
 tweepy
-re
-os
 textblob
 wordcloud
 dotenv
