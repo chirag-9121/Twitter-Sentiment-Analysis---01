@@ -1,0 +1,8 @@
+tweepy
+re
+os
+textblob
+wordcloud
+dotenv
+datetime
+streamlit
