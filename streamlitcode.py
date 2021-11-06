@@ -4,15 +4,11 @@ import tweepy                             # API for getting twitter info
 import pandas as pd
 import matplotlib.pyplot as plt
 import re
-import os                                 # To get the api keys stored as environment variables
 from textblob import TextBlob             # To analyse the sentiment
 from wordcloud import WordCloud,STOPWORDS # To make a wordcloud
-from dotenv import load_dotenv            # For loading the environment variables
 import datetime
 import streamlit as st
 import plotly.express as px
-
-load_dotenv()
 
 
 # Adding streamlit features to webpage
@@ -29,10 +25,10 @@ st.markdown("***")
 
 # Storing the API KEYS provided by Twitter Dev Account
 
-api_key             = os.getenv('api_key')
-api_secret_key      = os.getenv('api_secret_key')
-access_token        = os.getenv('access_token')
-access_token_secret = os.getenv('access_token_secret')
+api_key             = st.secrets['api_key']
+api_secret_key      = st.secrets['api_secret_key']
+access_token        = st.secrets['access_token']
+access_token_secret = st.secrets['access_token_secret']
 
 
 # Authorizing the API
