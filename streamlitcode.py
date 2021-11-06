@@ -2,7 +2,6 @@
 
 import tweepy                             # API for getting twitter info
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import re
 import os                                 # To get the api keys stored as environment variables
@@ -11,8 +10,21 @@ from wordcloud import WordCloud,STOPWORDS # To make a wordcloud
 from dotenv import load_dotenv            # For loading the environment variables
 import datetime
 import streamlit as st
+import plotly.express as px
 
 load_dotenv()
+
+
+# Adding streamlit features to webpage
+
+st.set_page_config(layout="wide")
+st.markdown("<center><font size=6><b>Twitter Sentiment Analysis</b></font></center>",unsafe_allow_html=True)
+st.subheader("Introduction")
+st.markdown("Hi, my name is Chirag Gupta and I'm a Data Science enthusiast. You can connect with me on <a href='https://www.linkedin.com/in/chirag-gupta-359593218/'>LinkedIn</a>.",unsafe_allow_html=True)
+st.markdown("Approximately 500 million tweets are posted everyday on Twitter. No matter what happens in this world, Twitter is the first place people go to write about an event. Thus it has become so crucial to know what a person feels about a specific topic and analyze the sentiment behind those tweets.")
+st.markdown("This is my first project on API and Sentiment Analysis and it has been made possible with the help of Twitter Developer Account. Apply for your own <a href='https://developer.twitter.com/en/apply-for-access'>Twitter Developer Account</a>.",unsafe_allow_html=True)
+st.markdown("Go ahead and try out this not so amazing app I made for you. It may not be fast and effiecient, but ehh it does the work, so please bear with a newbie coder and have patience. Thank you.")
+st.markdown("***")
 
 
 # Storing the API KEYS provided by Twitter Dev Account
@@ -44,20 +56,19 @@ def get_tweets(searchword,formatted_date,num_of_tweets):
         tweets.append(tweet.full_text)
         created_at.append(tweet.created_at)
 
-def get_user_inputs():
+#@st.cache
+def get_user_inputs(hashtag,num_of_tweets,until):
     
     global tweets
     global created_at
     tweets = []
     created_at = []
+    bar = st.progress(0)
+    progress = 1
+    total_days = until
 
-    hashtag = input("Search a keyword :")
     searchword = hashtag+'-filter:retweets AND -filter:replies'
-    
-    num_of_tweets = int(input("Enter number of tweets that must be scraped per day :"))    
-    
     today = datetime.date.today()
-    until = int(input("Enter number of days until the tweets must be scraped :"))
     
     for i in range(until,0,-1):
         delta = datetime.timedelta(days = until-2)
@@ -65,43 +76,92 @@ def get_user_inputs():
         formatted_date = until_date.strftime("%Y-%m-%d")
         until = until - 1
         get_tweets(searchword,formatted_date,num_of_tweets)
+        bar.progress(int((100*progress/total_days)))
+        progress = progress + 1
 
-# Getting user Inputs
+    st.success("Tweets Fetched Successfully")
+
+def create_df():
+    data = {"Tweet":tweets,
+        "Date":created_at}
+    dummy = pd.DataFrame(data)
+
+    dummy['Tweet'] = dummy['Tweet'].apply(lambda x:cleaned_tweet(x))
+    dummy['Polarity'] = dummy['Tweet'].apply(lambda x:calculate_polarity(x))
+    dummy.drop_duplicates(inplace=True)
+
+    dummy.loc[dummy['Polarity'] > 0, "Sentiment"] = "Positive"
+    dummy.loc[dummy['Polarity'] == 0, "Sentiment"] = "Neutral"
+    dummy.loc[dummy['Polarity'] < 0, "Sentiment"] = "Negative"
+
+    return dummy
+
+
+# Getting user Inputs and Creating the dataframe
 
 tweets = []
 created_at = []
-get_user_inputs()
+
+col1,col2,col3 = st.columns((2,1,2))
+col1.text_input("Search a keyword :", key="hashtag")
+col1.markdown("<br><br>",unsafe_allow_html=True)
+hashtag = st.session_state.hashtag
+num_of_tweets = col3.radio('Select the number of tweets that must be scraped per day :',(50,100,150,200))
+col3.markdown("<br><br>",unsafe_allow_html=True)
+until = col1.slider("Select the number of days until the tweets must be scraped :",min_value=1,max_value=10)
+
+if col3.button('Fetch Tweets'):
+    with st.spinner("Fetching Tweets. Please Wait..."):
+        get_user_inputs(hashtag,num_of_tweets,until)
+
+    initial_df = create_df()
+    df = initial_df.copy()
+    pos = df[df['Sentiment']=='Positive']
+    neg = df[df['Sentiment']=='Negative']
 
 
-# Creating and Manipulating the dataframe
+    # Pie Chart for Positive and Negative Tweets
 
-data = {"Tweet":tweets,
-        "Date":created_at}
-dummy = pd.DataFrame(data)
-
-df = dummy.copy()
-df['Tweet'] = df['Tweet'].apply(lambda x:cleaned_tweet(x))
-df['Polarity'] = df['Tweet'].apply(lambda x:calculate_polarity(x))
-df.drop_duplicates(inplace=True)
-
-df.loc[df['Polarity'] > 0, "Sentiment"] = "Positive"
-df.loc[df['Polarity'] == 0, "Sentiment"] = "Neutral"
-df.loc[df['Polarity'] < 0, "Sentiment"] = "Negative"
-
-pos = df[df['Sentiment']=='Positive']
-neg = df[df['Sentiment']=='Negative']
+    labels = ['Positive','Negative']
+    values = [pos.shape[0],neg.shape[0]]
+    fig = px.pie(values=values,names=labels,title="Positive and Negative Tweet Pie Chart",color_discrete_sequence=['#61ff69','#ff6961'])
+    st.write(fig)
 
 
-# Adding to webpage
+    # Line Plot
 
-st.set_page_config(layout="wide")
-st.title('Twitter Sentimental Analysis')
-st.markdown("***")
+    df_day = df.groupby([pd.Grouper(key='Date', freq='D'), 'Sentiment']).size().unstack('Sentiment')
+    df_day.index = df_day.index.strftime('%Y-%m-%d')
+    df_day.drop(columns='Neutral',inplace=True)
+    fig2 = px.line(df_day,color_discrete_sequence=['#ff6961','#61ff69'],title="Day wise Tweets",markers=True,labels={'value':'Tweets'})
+    st.write(fig2)
 
-# Pie Chart for Positive and Negative Tweets
+    # WordCloud
 
-plt.figure(figsize=[10,5])
-labels = ['Positive','Negative']
-values = [pos.shape[0],neg.shape[0]]
-plt.pie(values, labels=labels, autopct='%1.2f%%',colors=['#61ff69','#ff6961'])
-st.write(plt.show())
+    twitter_mask = plt.imread("./twitter_mask.jpg")
+
+    # For Positive Tweets
+    text = " ".join(tweet for tweet in pos['Tweet'])
+    wc = WordCloud(background_color="white", max_words=500, mask=twitter_mask, stopwords=STOPWORDS)
+    wc.generate(text)
+    fig3 = px.imshow(wc,title="WordCloud for Positive Tweets",width=980,height=900)
+    fig3.update_layout(coloraxis_showscale=False)
+    fig3.update_xaxes(showticklabels=False)
+    fig3.update_yaxes(showticklabels=False)
+    st.write(fig3)
+
+    # For Negative Tweets
+    text = " ".join(tweet for tweet in neg['Tweet'])
+    wc = WordCloud(background_color="white", max_words=500, mask=twitter_mask, stopwords=STOPWORDS)
+    wc.generate(text)
+    fig4 = px.imshow(wc,title="WordCloud for Negative Tweets",width=980,height=900)
+    fig4.update_layout(coloraxis_showscale=False)
+    fig4.update_xaxes(showticklabels=False)
+    fig4.update_yaxes(showticklabels=False)
+    st.write(fig4)
+
+
+    # Display df
+
+    with st.expander("Display Dataframe"):
+        st.write(df)

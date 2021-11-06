@@ -1,6 +1,6 @@
 tweepy
 textblob
 wordcloud
-dotenv
 datetime
 streamlit
+plotly
