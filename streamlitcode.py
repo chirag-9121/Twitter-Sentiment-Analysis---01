@@ -18,8 +18,9 @@ st.markdown("<center><font size=6><b>Twitter Sentiment Analysis</b></font></cent
 st.subheader("Introduction")
 st.markdown("Hi, my name is Chirag Gupta and I'm a Data Science enthusiast. You can connect with me on <a href='https://www.linkedin.com/in/chirag-gupta-359593218/'>LinkedIn</a>.",unsafe_allow_html=True)
 st.markdown("Approximately 500 million tweets are posted everyday on Twitter. No matter what happens in this world, Twitter is the first place people go to write about an event. Thus it has become so crucial to know what a person feels about a specific topic and analyze the sentiment behind those tweets.")
-st.markdown("This is my first project on API and Sentiment Analysis and it has been made possible with the help of Twitter Developer Account. Apply for your own <a href='https://developer.twitter.com/en/apply-for-access'>Twitter Developer Account</a>.",unsafe_allow_html=True)
+st.markdown("This is my first project on API and Sentiment Analysis and it has been made possible with the help of a Twitter Developer Account. Apply for your own <a href='https://developer.twitter.com/en/apply-for-access'>Twitter Developer Account</a>.",unsafe_allow_html=True)
 st.markdown("Go ahead and try out this not so amazing app I made for you. It may not be fast and effiecient, but ehh it does the work, so please bear with a newbie coder and have patience. Thank you.")
+st.warning('This app is currently down due to the Twitter API limitations for the unpaid version.')
 st.markdown("***")
 
 
